@@ -250,14 +250,14 @@ def main(args):
 
 
 if __name__ == '__main__':
+
     # Instead of parsing command line arguments, we manually create an args object.
     class Args:
         pass
 
-
     args = Args()
     # Model parameters
-    args.backbone = 'vgg16_bn'
+    args.backbone = 'vgg19_bn'
     args.position_embedding = 'sine'
     args.dec_layers = 2
     args.dim_feedforward = 512
@@ -279,8 +279,9 @@ if __name__ == '__main__':
     args.dist_url = 'env://'
     # Input paths and grid segmentation parameters
     args.img_path = r'C:\Users\jm190\Desktop\Deep Learning\7\DJI_0061.tif'  # update as needed
-    args.resume = r'C:\Users\jm190\Desktop\pre-trained_models\JHU_Crowd.pth'  # update as needed
-    args.vis_dir = r'C:\Users\jm190\PycharmProjects\PET\visualization'
+    args.resume = r'C:\Users\jm190\PycharmProjects\PET_cc\pretrained\JHU_Crowd.pth'  # update as needed
+    args.vis_dir = r'C:\Users\jm190\PycharmProjects\PET_cc\visualization'
     args.grid_cols = 3  # number of columns in the segmentation grid
     args.grid_rows = 3  # number of rows in the segmentation grid
-    main(args)
+    # Run the main function
+    main(args) # here we go

@@ -21,7 +21,9 @@ model_urls = {
 
 
 model_paths = {
+    # add your local paths here
     'vgg16_bn': './pretrained/vgg16_bn-6c64b313.pth',
+    'vgg19_bn': './pretrained/vgg19_bn-c79401a0.pth',
 }
 
 

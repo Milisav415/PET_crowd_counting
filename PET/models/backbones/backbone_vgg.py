@@ -2,7 +2,9 @@
 Backbone modules
 """
 from collections import OrderedDict
+from typing import Dict
 
+import out
 import torch
 import torch.nn.functional as F
 import torchvision
@@ -55,9 +57,20 @@ class BackboneBase_VGG(nn.Module):
                 self.body2 = nn.Sequential(*features[13:23])
                 self.body3 = nn.Sequential(*features[23:33])
                 self.body4 = nn.Sequential(*features[33:43])
+            elif name == 'vgg19_bn':
+                # For vgg19_bn, we use slightly different indices.
+                # Here we assume that by dropping the final pooling we use 52 modules.
+                # This division takes blocks 1+2 as body1, block3 as body2,
+                # block4 as body3, and block5 as body4.
+                self.body1 = nn.Sequential(*features[:14])
+                self.body2 = nn.Sequential(*features[14:27])
+                self.body3 = nn.Sequential(*features[27:40])
+                self.body4 = nn.Sequential(*features[40:52])
         else:
             if name == 'vgg16_bn':
-                self.body = nn.Sequential(*features[:44])  # 16x down-sample
+                self.body = nn.Sequential(*features[:44])
+            elif name == 'vgg19_bn':
+                self.body = nn.Sequential(*features[:52])
         self.num_channels = num_channels
         self.return_interm_layers = return_interm_layers
         self.fpn = FeatsFusion(256, 512, 512, hidden_size=num_channels, out_size=num_channels, out_kernel=3)
@@ -80,13 +93,16 @@ class BackboneBase_VGG(nn.Module):
             assert m is not None
             mask_4x = F.interpolate(m[None].float(), size=features_fpn_4x.shape[-2:]).to(torch.bool)[0]
             mask_8x = F.interpolate(m[None].float(), size=features_fpn_8x.shape[-2:]).to(torch.bool)[0]
-
-            out: Dict[str, NestedTensor] = {}
-            out['4x'] = NestedTensor(features_fpn_4x, mask_4x)
-            out['8x'] = NestedTensor(features_fpn_8x, mask_8x)
+            out: Dict[str, NestedTensor] = {'4x': NestedTensor(features_fpn_4x, mask_4x),
+                                            '8x': NestedTensor(features_fpn_8x, mask_8x)}
         else:
+            # fixed a bug here, in most cases it will not go here but still...
             xs = self.body(tensor_list)
-            out.append(xs)
+            m = tensor_list.mask
+            assert m is not None
+            # Interpolate the mask to match the feature map dimensions
+            mask = F.interpolate(m[None].float(), size=xs.shape[-2:]).to(torch.bool)[0]
+            out = {'0': NestedTensor(xs, mask)}
 
         return out
 
@@ -98,6 +114,8 @@ class Backbone_VGG(BackboneBase_VGG):
     def __init__(self, name: str, return_interm_layers: bool):
         if name == 'vgg16_bn':
             backbone = vgg16_bn(pretrained=True)
+        elif name == 'vgg19_bn':
+            backbone = vgg19_bn(pretrained=True)
         num_channels = 256
         super().__init__(backbone, num_channels, name, return_interm_layers)
 

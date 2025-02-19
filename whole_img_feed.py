@@ -155,7 +155,6 @@ def evaluate_single_image(model, img_path, device, vis_dir=None):
 
 
 def main(args):
-    args.vis_dir = r'C:\Users\jm190\PycharmProjects\PET\visualization'  # or set to a directory for visualizations
     # build model
     device = torch.device(args.device)
     model, criterion = build_model(args)
@@ -206,8 +205,8 @@ if __name__ == '__main__':
     args.dist_url = 'env://'
 
     # Input paths for evaluation
-    args.img_path = r'C:\Users\jm190\Desktop\dron\slike\DJI_0068.JPG'  # update this path
+    args.img_path = r'C:\Users\jm190\Desktop\Deep Learning\19\DJI_0287.png'  # update this path
     args.resume = r'C:\Users\jm190\Desktop\pre-trained_models\JHU_Crowd.pth'  # update this path
-    args.vis_dir = r'C:\Users\jm190\PycharmProjects\PET\visualization'  # or set to a directory for visualizations
+    args.vis_dir = r'C:\Users\jm190\PycharmProjects\PET_cc\visualization'  # or set to a directory for visualizations
 
     main(args) # here we go
