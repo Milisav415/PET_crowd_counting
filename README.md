@@ -14,7 +14,7 @@ International Conference on Computer Vision (ICCV), 2023
 
 [[Paper]](https://arxiv.org/abs/2308.13814) | [[Supplementary]](https://drive.google.com/file/d/1WxdtOaEEccYrXuNQTn1k29lFDAetBm63/view?usp=sharing)
 
-![PET](teaser.JPG)
+![PET](PET/teaser.JPG)
 
 ## Highlights
 

@@ -5,4 +5,11 @@
     <orderEntry type="jdk" jdkName="C:\Users\jm190\anaconda3" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/PET" />
+      </list>
+    </option>
+  </component>
 </module>
