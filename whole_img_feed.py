@@ -1,201 +1,177 @@
-#!/usr/bin/env python
-
-import datetime
-import json
-import random
-import time
-from pathlib import Path
+import argparse
 import os
-import shutil
-
+import cv2
 import numpy as np
+from PIL import Image
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, DistributedSampler
+import torchvision.transforms as standard_transforms
 
-import datasets
 import util.misc as utils
-from datasets import build_dataset
-from engine import evaluate, train_one_epoch
 from models import build_model
 
-def get_args_defaults():
-    # This function is provided for reference; we now set defaults manually below.
-    defaults = {
-        'lr': 1e-4,
-        'lr_backbone': 1e-5,
-        'batch_size': 8,
-        'weight_decay': 1e-4,
-        'epochs': 1500,
-        'clip_max_norm': 0.1,
-        'backbone': 'vgg16_bn',
-        'position_embedding': 'sine',
-        'dec_layers': 2,
-        'dim_feedforward': 512,
-        'hidden_dim': 256,
-        'dropout': 0.0,
-        'nheads': 8,
-        'set_cost_class': 1,
-        'set_cost_point': 0.05,
-        'ce_loss_coef': 1.0,
-        'point_loss_coef': 5.0,
-        'eos_coef': 0.5,
-        'dataset_file': "custom",
-        'data_path': "./data/custom",
-        'output_dir': 'pet_model',
-        'device': 'cuda',
-        'seed': 42,
-        'resume': '',
-        'start_epoch': 0,
-        'num_workers': 2,
-        'eval_freq': 5,
-        'syn_bn': 0,
-        'world_size': 1,
-        'dist_url': 'env://'
-    }
-    return defaults
+
+def get_args_parser():
+    parser = argparse.ArgumentParser('Set Point Query Transformer', add_help=False)
+
+    # model parameters
+    # - backbone
+    parser.add_argument('--backbone', default='vgg16_bn', type=str,
+                        help="Name of the convolutional backbone to use")
+    parser.add_argument('--position_embedding', default='sine', type=str, choices=('sine', 'learned', 'fourier'),
+                        help="Type of positional embedding to use on top of the image features")
+    # - transformer
+    parser.add_argument('--dec_layers', default=2, type=int,
+                        help="Number of decoding layers in the transformer")
+    parser.add_argument('--dim_feedforward', default=512, type=int,
+                        help="Intermediate size of the feedforward layers in the transformer blocks")
+    parser.add_argument('--hidden_dim', default=256, type=int,
+                        help="Size of the embeddings (dimension of the transformer)")
+    parser.add_argument('--dropout', default=0.0, type=float,
+                        help="Dropout applied in the transformer")
+    parser.add_argument('--nheads', default=8, type=int,
+                        help="Number of attention heads inside the transformer's attentions")
+
+    # loss parameters
+    # - matcher
+    parser.add_argument('--set_cost_class', default=1, type=float,
+                        help="Class coefficient in the matching cost")
+    parser.add_argument('--set_cost_point', default=0.05, type=float,
+                        help="SmoothL1 point coefficient in the matching cost")
+    # - loss coefficients
+    parser.add_argument('--ce_loss_coef', default=1.0, type=float)  # classification loss coefficient
+    parser.add_argument('--point_loss_coef', default=5.0, type=float)  # regression loss coefficient
+    parser.add_argument('--eos_coef', default=0.5, type=float,
+                        help="Relative classification weight of the no-object class")  # cross-entropy weights
+
+    # dataset parameters
+    parser.add_argument('--dataset_file', default="SHA")
+    parser.add_argument('--data_path', default="./data/ShanghaiTech/PartA", type=str)
+
+    # misc parameters
+    parser.add_argument('--device', default='cuda',
+                        help='device to use for training / testing')
+    parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--resume', default='', help='resume from checkpoint')
+    parser.add_argument('--vis_dir', default="")
+    parser.add_argument('--num_workers', default=2, type=int)
+
+    # distributed training parameters
+    parser.add_argument('--world_size', default=1, type=int,
+                        help='number of distributed processes')
+    parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
+    return parser
+
+
+class DeNormalize(object):
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, tensor):
+        for t, m, s in zip(tensor, self.mean, self.std):
+            t.mul_(s).add_(m)
+        return tensor
+
+
+def visualization(samples, pred, vis_dir, img_path, split_map=None):
+    """
+    Visualize predictions
+    """
+    pil_to_tensor = standard_transforms.ToTensor()
+
+    restore_transform = standard_transforms.Compose([
+        DeNormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        standard_transforms.ToPILImage()
+    ])
+
+    images = samples.tensors
+    masks = samples.mask
+    for idx in range(images.shape[0]):
+        sample = restore_transform(images[idx])
+        sample = pil_to_tensor(sample.convert('RGB')).numpy() * 255
+        sample_vis = sample.transpose([1, 2, 0])[:, :, ::-1].astype(np.uint8).copy()
+
+        # draw predictions (green)
+        size = 3
+        for p in pred[idx]:
+            sample_vis = cv2.circle(sample_vis, (int(p[1]), int(p[0])), size, (0, 255, 0), -1)
+
+        # draw split map
+        if split_map is not None:
+            imgH, imgW = sample_vis.shape[:2]
+            split_map = (split_map * 255).astype(np.uint8)
+            split_map = cv2.applyColorMap(split_map, cv2.COLORMAP_JET)
+            split_map = cv2.resize(split_map, (imgW, imgH), interpolation=cv2.INTER_NEAREST)
+            sample_vis = split_map * 0.9 + sample_vis
+
+        # save image
+        if vis_dir is not None:
+            # eliminate invalid area
+            imgH, imgW = masks.shape[-2:]
+            valid_area = torch.where(~masks[idx])
+            valid_h, valid_w = valid_area[0][-1], valid_area[1][-1]
+            sample_vis = sample_vis[:valid_h + 1, :valid_w + 1]
+
+            name = os.path.splitext(os.path.basename(img_path))[0]
+            img_save_path = os.path.join(vis_dir, '{}_pred{}.jpg'.format(name, len(pred[idx])))
+            cv2.imwrite(img_save_path, sample_vis)
+            print('image save to ', img_save_path)
+
+
+@torch.no_grad()
+def evaluate_single_image(model, img_path, device, vis_dir=None):
+    model.eval()
+
+    if vis_dir is not None:
+        os.makedirs(vis_dir, exist_ok=True)
+
+    # load image
+    img = cv2.imread(img_path)
+    img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+    # transform image
+    transform = standard_transforms.Compose([
+        standard_transforms.ToTensor(), standard_transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                      std=[0.229, 0.224, 0.225]),
+    ])
+    img = transform(img)
+    img = torch.Tensor(img)
+    samples = utils.nested_tensor_from_tensor_list([img])
+    samples = samples.to(device)
+    img_h, img_w = samples.tensors.shape[-2:]
+
+    # inference
+    outputs = model(samples, test=True)
+    raw_scores = torch.nn.functional.softmax(outputs['pred_logits'], -1)
+    outputs_scores = raw_scores[:, :, 1][0]
+    outputs_points = outputs['pred_points'][0]
+    print('prediction: ', len(outputs_scores))
+
+    # visualize predictions
+    if vis_dir:
+        points = [[point[0] * img_h, point[1] * img_w] for point in outputs_points]  # recover to actual points
+        split_map = (outputs['split_map_raw'][0].detach().cpu().squeeze(0) > 0.5).float().numpy()
+        visualization(samples, [points], vis_dir, img_path, split_map=split_map)
+
 
 def main(args):
-    utils.init_distributed_mode(args)
-    print(args)
+    # build model
     device = torch.device(args.device)
-
-    # fix the seed for reproducibility
-    seed = args.seed + utils.get_rank()
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-
-    # build model and criterion
     model, criterion = build_model(args)
     model.to(device)
-    if args.syn_bn:
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    model_without_ddp = model
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
-        model_without_ddp = model.module
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-    # build optimizer
-    param_dicts = [
-        {"params": [p for n, p in model_without_ddp.named_parameters() if "backbone" not in n and p.requires_grad]},
-        {"params": [p for n, p in model_without_ddp.named_parameters() if "backbone" in n and p.requires_grad],
-         "lr": args.lr_backbone},
-    ]
-    optimizer = torch.optim.AdamW(param_dicts, lr=args.lr, weight_decay=args.weight_decay)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.epochs)
-
-    # build datasets and dataloaders
-    dataset_train = build_dataset(image_set='train', args=args)
-    dataset_val = build_dataset(image_set='val', args=args)
-
-    if args.distributed:
-        sampler_train = DistributedSampler(dataset_train)
-        sampler_val = DistributedSampler(dataset_val, shuffle=False)
+    # load pretrained model
+    checkpoint = torch.load(args.resume, map_location='cpu')
+    if 'model' in checkpoint:
+        model.load_state_dict(checkpoint['model'])
+    elif 'state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['state_dict'])
     else:
-        sampler_train = torch.utils.data.RandomSampler(dataset_train)
-        sampler_val = torch.utils.data.SequentialSampler(dataset_val)
+        raise KeyError("No 'model' or 'state_dict' key found in the checkpoint.")
+    # evaluation
+    vis_dir = None if args.vis_dir == "" else args.vis_dir
+    evaluate_single_image(model, args.img_path, device, vis_dir=vis_dir)
 
-    batch_sampler_train = torch.utils.data.BatchSampler(sampler_train, args.batch_size, drop_last=True)
-    data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
-                                   collate_fn=utils.collate_fn, num_workers=args.num_workers)
-    data_loader_val = DataLoader(dataset_val, 1, sampler=sampler_val,
-                                 drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
-
-    # setup output directory and logging
-    if utils.is_main_process:
-        output_dir = os.path.join("./outputs", args.dataset_file, args.output_dir)
-        os.makedirs(output_dir, exist_ok=True)
-        output_dir = Path(output_dir)
-        run_log_name = os.path.join(output_dir, 'run_log.txt')
-        with open(run_log_name, "a") as log_file:
-            log_file.write('Run Log %s\n' % time.strftime("%c"))
-            log_file.write("{}".format(args))
-            log_file.write(" parameters: {}".format(n_parameters))
-
-    # resume from checkpoint if specified
-    best_mae, best_epoch = 1e8, 0
-    if args.resume:
-        if args.resume.startswith('https'):
-            checkpoint = torch.hub.load_state_dict_from_url(
-                args.resume, map_location='cpu', check_hash=True)
-        else:
-            checkpoint = torch.load(args.resume, map_location='cpu')
-        model_without_ddp.load_state_dict(checkpoint['model'])
-        if 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-            args.start_epoch = checkpoint['epoch'] + 1
-            best_mae = checkpoint['best_mae']
-            best_epoch = checkpoint['best_epoch']
-
-    # training loop
-    print("Start training")
-    start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
-            sampler_train.set_epoch(epoch)
-
-        t1 = time.time()
-        train_stats = train_one_epoch(model, criterion, data_loader_train, optimizer, device, epoch,
-                                      args.clip_max_norm)
-        t2 = time.time()
-        print('[ep %d][lr %.7f][%.2fs]' % (epoch, optimizer.param_groups[0]['lr'], t2 - t1))
-
-        if utils.is_main_process:
-            with open(run_log_name, "a") as log_file:
-                log_file.write('\n[ep %d][lr %.7f][%.2fs]' % (epoch, optimizer.param_groups[0]['lr'], t2 - t1))
-
-        lr_scheduler.step()
-
-        # save checkpoint
-        checkpoint_paths = [output_dir / 'checkpoint.pth']
-        for checkpoint_path in checkpoint_paths:
-            utils.save_on_master({
-                'model': model_without_ddp.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'lr_scheduler': lr_scheduler.state_dict(),
-                'epoch': epoch,
-                'args': args,
-                'best_mae': best_mae,
-            }, checkpoint_path)
-
-        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     'epoch': epoch,
-                     'n_parameters': n_parameters}
-
-        if utils.is_main_process():
-            with open(run_log_name, "a") as f:
-                f.write(json.dumps(log_stats) + "\n")
-
-        # evaluation every eval_freq epochs
-        if epoch % args.eval_freq == 0 and epoch > 0:
-            t1 = time.time()
-            test_stats = evaluate(model, data_loader_val, device, epoch, None)
-            t2 = time.time()
-            mae, mse = test_stats['mae'], test_stats['mse']
-            if mae < best_mae:
-                best_epoch = epoch
-                best_mae = mae
-            print("\n==========================")
-            print("\nepoch:", epoch, "mae:", mae, "mse:", mse, "\n\nbest mae:", best_mae, "best epoch:", best_epoch)
-            print("==========================\n")
-            if utils.is_main_process():
-                with open(run_log_name, "a") as log_file:
-                    log_file.write("\nepoch:{}, mae:{}, mse:{}, time:{}, best mae:{}, best epoch:{}\n\n".format(
-                        epoch, mae, mse, t2 - t1, best_mae, best_epoch))
-
-            # save best checkpoint
-            if mae == best_mae and utils.is_main_process():
-                src_path = output_dir / 'checkpoint.pth'
-                dst_path = output_dir / 'best_checkpoint.pth'
-                shutil.copyfile(src_path, dst_path)
-
-    total_time = time.time() - start_time
-    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-    print('Training time {}'.format(total_time_str))
 
 if __name__ == '__main__':
     # Instead of parsing command line arguments, we manually create an args object.
@@ -203,9 +179,34 @@ if __name__ == '__main__':
         pass
 
     args = Args()
-    defaults = get_args_defaults()
-    for key, value in defaults.items():
-        setattr(args, key, value)
+    # Model and transformer parameters (using defaults from your parser)
+    args.backbone = 'vgg16_bn'
+    args.position_embedding = 'sine'
+    args.dec_layers = 2
+    args.dim_feedforward = 512
+    args.hidden_dim = 256
+    args.dropout = 0.0
+    args.nheads = 8
 
-    # Call the main training function with our manually defined args
-    main(args)
+    # Loss parameters
+    args.set_cost_class = 1.0
+    args.set_cost_point = 0.05
+    args.ce_loss_coef = 1.0
+    args.point_loss_coef = 5.0
+    args.eos_coef = 0.5
+
+    # Misc parameters
+    args.device = 'cpu'  # change to 'cpu' if you don't have a GPU
+    args.seed = 42
+    args.num_workers = 2
+
+    # Distributed training parameters
+    args.world_size = 1
+    args.dist_url = 'env://'
+
+    # Input paths for evaluation
+    args.img_path = r'C:\Users\jm190\Desktop\Deep Learning\19\DJI_0287.png'  # update this path
+    args.resume = r'C:\Users\jm190\Desktop\pre-trained_models\JHU_Crowd.pth'  # update this path
+    args.vis_dir = r'C:\Users\jm190\PycharmProjects\PET_cc\visualization'  # or set to a directory for visualizations
+
+    main(args) # here we go
