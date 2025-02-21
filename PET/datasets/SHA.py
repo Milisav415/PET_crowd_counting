@@ -123,7 +123,7 @@ def random_crop(img, points, patch_size=256):
     result_points[:, 0] -= start_h
     result_points[:, 1] -= start_w
     
-    # resize to patchsize
+    # resize to patch size
     imgH, imgW = result_img.shape[-2:]
     fH, fW = patch_h/imgH, patch_w/imgW
     result_img = torch.nn.functional.interpolate(result_img.unsqueeze(0), (patch_h, patch_w)).squeeze(0)

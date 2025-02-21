@@ -1,6 +1,15 @@
 # Point-Query Quadtree for Crowd Counting, Localization, and More (ICCV 2023)
 
-This repository includes the official implementation of the paper: 
+## Important announcement !
+#=====================================================
+
+This repository utilizes resources from [PET](https://github.com/cxliu0/PET) . 
+Rather than working on a forked version, I opted to create a separate repository to modify the code without impacting the original project. 
+This approach also simplifies tracking changes and integrating with other projects.
+
+#=====================================================
+
+This repository includes the implementation of the paper: 
 
 [**Point-Query Quadtree for Crowd Counting, Localization, and More**](https://arxiv.org/abs/2308.13814)
 

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+import argparse
 import datetime
 import json
 import random
@@ -19,41 +18,68 @@ from datasets import build_dataset
 from engine import evaluate, train_one_epoch
 from models import build_model
 
-def get_args_defaults():
-    # This function is provided for reference; we now set defaults manually below.
-    defaults = {
-        'lr': 1e-4,
-        'lr_backbone': 1e-5,
-        'batch_size': 8,
-        'weight_decay': 1e-4,
-        'epochs': 1500,
-        'clip_max_norm': 0.1,
-        'backbone': 'vgg16_bn',
-        'position_embedding': 'sine',
-        'dec_layers': 2,
-        'dim_feedforward': 512,
-        'hidden_dim': 256,
-        'dropout': 0.0,
-        'nheads': 8,
-        'set_cost_class': 1,
-        'set_cost_point': 0.05,
-        'ce_loss_coef': 1.0,
-        'point_loss_coef': 5.0,
-        'eos_coef': 0.5,
-        'dataset_file': "custom",
-        'data_path': "./data/custom",
-        'output_dir': 'pet_model',
-        'device': 'cuda',
-        'seed': 42,
-        'resume': '',
-        'start_epoch': 0,
-        'num_workers': 2,
-        'eval_freq': 5,
-        'syn_bn': 0,
-        'world_size': 1,
-        'dist_url': 'env://'
-    }
-    return defaults
+
+def get_args_parser():
+    parser = argparse.ArgumentParser('Set Point Query Transformer', add_help=False)
+    # training parameters
+    parser.add_argument('--lr', default=1e-4, type=float, help="Learning rate")
+    parser.add_argument('--lr_backbone', default=1e-5, type=float, help="Learning rate for the backbone")
+    parser.add_argument('--batch_size', default=8, type=int)
+    parser.add_argument('--weight_decay', default=1e-4, type=float)
+    parser.add_argument('--epochs', default=1500, type=int)
+    parser.add_argument('--clip_max_norm', default=0.1, type=float,
+                        help='Gradient clipping max norm')
+
+    # model parameters
+    parser.add_argument('--backbone', default='vgg16_bn', type=str,
+                        help="Name of the convolutional backbone to use")
+    parser.add_argument('--position_embedding', default='sine', type=str, choices=('sine', 'learned', 'fourier'),
+                        help="Type of positional embedding to use on top of the image features")
+    parser.add_argument('--dec_layers', default=2, type=int,
+                        help="Number of decoding layers in the transformer")
+    parser.add_argument('--dim_feedforward', default=512, type=int,
+                        help="Intermediate size of the feedforward layers in the transformer blocks")
+    parser.add_argument('--hidden_dim', default=256, type=int,
+                        help="Size of the embeddings (dimension of the transformer)")
+    parser.add_argument('--dropout', default=0.0, type=float,
+                        help="Dropout applied in the transformer")
+    parser.add_argument('--nheads', default=8, type=int,
+                        help="Number of attention heads inside the transformer's attentions")
+
+    # loss parameters
+    parser.add_argument('--set_cost_class', default=1, type=float,
+                        help="Class coefficient in the matching cost")
+    parser.add_argument('--set_cost_point', default=0.05, type=float,
+                        help="SmoothL1 point coefficient in the matching cost")
+    parser.add_argument('--ce_loss_coef', default=1.0, type=float)
+    parser.add_argument('--point_loss_coef', default=5.0, type=float)
+    parser.add_argument('--eos_coef', default=0.5, type=float,
+                        help="Relative classification weight of the no-object class")
+
+    # dataset parameters (adjusted for your custom dataset)
+    parser.add_argument('--dataset_file', default="custom", help="Name of the dataset file")
+    parser.add_argument('--data_path', default="./data/custom", type=str,
+                        help="Path to the custom dataset")
+
+    # misc parameters
+    parser.add_argument('--output_dir', default='pet_model',
+                        help='Path where to save outputs')
+    parser.add_argument('--device', default='cuda',
+                        help='Device to use for training / testing')
+    parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--resume', default='', help='Resume from checkpoint')
+    parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
+                        help='Start epoch')
+    parser.add_argument('--num_workers', default=2, type=int)
+    parser.add_argument('--eval_freq', default=5, type=int)
+    parser.add_argument('--syn_bn', default=0, type=int)
+
+    # distributed training parameters
+    parser.add_argument('--world_size', default=1, type=int,
+                        help='Number of distributed processes')
+    parser.add_argument('--dist_url', default='env://', help='URL used to set up distributed training')
+    return parser
+
 
 def main(args):
     utils.init_distributed_mode(args)
@@ -197,15 +223,8 @@ def main(args):
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
 
+
 if __name__ == '__main__':
-    # Instead of parsing command line arguments, we manually create an args object.
-    class Args:
-        pass
-
-    args = Args()
-    defaults = get_args_defaults()
-    for key, value in defaults.items():
-        setattr(args, key, value)
-
-    # Call the main training function with our manually defined args
+    parser = argparse.ArgumentParser('PET training and evaluation script', parents=[get_args_parser()])
+    args = parser.parse_args()
     main(args)
