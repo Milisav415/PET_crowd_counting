@@ -37,6 +37,7 @@ We formulate crowd counting as a decomposable point querying process, where spar
   
 
 ## Installation
+Make sure to mark the PET folder as a *`source directory`* otherwise the rest of the scripta won`t see it ! 
 
 - Required packages:
   
