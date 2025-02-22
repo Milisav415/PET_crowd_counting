@@ -3,6 +3,8 @@
 ## Important announcement !
 #=====================================================
 
+This is the link to my repo [Point-Query Quadtree for Crowd Counting.](https://github.com/Milisav415/PET_crowd_counting)
+
 This repository utilizes resources from [PET](https://github.com/cxliu0/PET) . 
 Rather than working on a forked version, I opted to create a separate repository to modify the code without impacting the original project. 
 This approach also simplifies tracking changes and integrating with other projects.
