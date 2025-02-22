@@ -37,9 +37,9 @@ We formulate crowd counting as a decomposable point querying process, where spar
   
 
 ## Installation
-Make sure to mark the PET folder as a *`source directory`* otherwise the rest of the scripta won`t see it ! 
+Make sure to mark the PET folder as a *`source directory`* otherwise the rest of the scripta won`t see it !
 
-- Required packages:
+- **Required packages**:
   
 ```
 torch
@@ -50,7 +50,7 @@ scipy
 matplotlib
 ```
 
-- Install packages:
+- **Install packages**:
 
 ```
 pip install -r requirements.txt
@@ -58,6 +58,28 @@ pip install -r requirements.txt
 
 
 ## Data Preparation
+
+- **Setting up custom dataset**:  
+In the datasets folder open `__init__.py` and change the path labeled *custom_dataset*  
+
+&nbsp;&nbsp;&nbsp;&nbsp;data_path = {  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'SHA': *path to ShanghaiTech dataset part A*,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'custom_dataset': *path to your custom dataset folder*,  
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+We expect the directory structure to be as follows:
+
+```
+./data/custom/
+├── annotations.json
+├── image1.jpg
+├── image2.jpg
+└── ... (other images)
+```
+
+
+- **Setting up ShanghaiTech dataset**:  
+
 
 - Download crowd-counting datasets, e.g., [ShanghaiTech](https://github.com/desenzhou/ShanghaiTechDataset).
   
@@ -83,8 +105,14 @@ PET
 
 ## Training
 
-- Download ImageNet pretrained [vgg16_bn](https://download.pytorch.org/models/vgg16_bn-6c64b313.pth), and put it in ```pretrained``` folder. Or you can define your pre-trained model path in [models/backbones/vgg.py](models/backbones/vgg.py)
+- Download ImageNet pretrained [vgg16_bn](https://download.pytorch.org/models/vgg16_bn-6c64b313.pth), and put it in ```pretrained``` folder. Or you can define your pre-trained model path in [models/backbones/vgg.py](models/backbones/vgg.py)  
+
   
+- To train PET on custom dataset, run
+
+  ```
+  python train.py
+  ```
 
 - To train PET on ShanghaiTech PartA, run
   
