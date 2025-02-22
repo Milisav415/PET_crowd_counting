@@ -1,3 +1,9 @@
+<!-- Lightbox2 CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css" rel="stylesheet" />
+
+<!-- Lightbox2 JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox-plus-jquery.min.js"></script>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,33 +131,41 @@
     </section>
 
     <!-- Example Images -->
-    <section>
-      <h2>Example Images</h2>
-      <p>Below are some example images illustrating key components of the approach:</p>
-      <div class="image-gallery">
-        <div>
-          <img src="assets/img.png" alt="Project Teaser" />
-          <p><em>Img 0. Comparison between prior arts and this point-query counting paradigm. In contrast to (a) prior arts, we
-                  consider arbitrary points as input, and reason whether each point is a person and where the person locates. We devise (b)
-                  a point-query quadtree to deal with dense crowd with adaptive tree splitting. The query design renders PET an intuitive
-                  and universal approach, enabling (c) various applications, such as fully-supervised crowd counting and localization, partial
-                  annotation learning, and point annotation refinement
-          </em></p>
-        </div>
-        <div>
-          <img src="visualization/DJI_0243_pred8178.jpg" alt="Example Visualization Output" />
-          <p><em>Img 1. Protest in Novi Sad with density segmentation and predictions</em></p>
-        </div>
-        <div>
-          <img src="visualization/DJI_0056_pred3263.jpg" alt="Example Visualization Output" />
-          <p><em>Img 2. Example of the output image and predictions</em></p>
-        </div>
-        <div>
-          <img src="visualization/DJI_0179_pred806.jpg" alt="Example Visualization Output" />
-          <p><em>Img 3. Close up shot example</em></p>
-        </div>
-      </div>
-    </section>
+<section>
+  <h2>Example Images</h2>
+  <p>Below are some example images illustrating key components of the approach:</p>
+  <div class="image-gallery">
+    <div>
+      <a href="assets/img.png" data-lightbox="gallery" data-title="Img 0. Comparison between prior arts and this point-query counting paradigm. In contrast to (a) prior arts, we consider arbitrary points as input, and reason whether each point is a person and where the person locates. We devise (b) a point-query quadtree to deal with dense crowd with adaptive tree splitting. The query design renders PET an intuitive and universal approach, enabling (c) various applications, such as fully-supervised crowd counting and localization, partial annotation learning, and point annotation refinement">
+        <img src="assets/img.png" alt="Project Teaser" />
+      </a>
+      <p><em>Img 0. Comparison between prior arts and our point-query counting paradigm. In contrast to (a) prior arts, we
+          consider arbitrary points as input, and reason whether each point is a person and where the person locates. We devise (b)
+          a point-query quadtree to deal with dense crowd with adaptive tree splitting. The query design renders PET an intuitive
+          and universal approach, enabling (c) various applications, such as fully-supervised crowd counting and localization, partial
+          annotation learning, and point annotation refinement.
+      </em></p>
+    </div>
+    <div>
+      <a href="visualization/DJI_0243_pred8178.jpg" data-lightbox="gallery" data-title="Img 1. Protest in Novi Sad with density segmentation and predictions">
+        <img src="visualization/DJI_0243_pred8178.jpg" alt="Example Visualization Output" />
+      </a>
+      <p><em>Img 1. Protest in Novi Sad with density segmentation and predictions</em></p>
+    </div>
+    <div>
+      <a href="visualization/DJI_0056_pred3263.jpg" data-lightbox="gallery" data-title="Img 2. Example of the output image and predictions">
+        <img src="visualization/DJI_0056_pred3263.jpg" alt="Example Visualization Output" />
+      </a>
+      <p><em>Img 2. Example of the output image and predictions</em></p>
+    </div>
+    <div>
+      <a href="visualization/DJI_0179_pred806.jpg" data-lightbox="gallery" data-title="Img 3. Close up shot example">
+        <img src="visualization/DJI_0179_pred806.jpg" alt="Example Visualization Output" />
+      </a>
+      <p><em>Img 3. Close up shot example</em></p>
+    </div>
+  </div>
+</section>
 
     <!-- Installation & Usage -->
     <section>
