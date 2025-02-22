@@ -76,12 +76,15 @@
 <body>
   <header>
     <h1>Point-Query Quadtree for Crowd Counting, Localization, and More</h1>
-    <p>ICCV 2023 Implementation</p>
+    <p>Point-Query Quadtree for Crowd Counting ICCV 2023 Implementation</p>
   </header>
   <main>
     <!-- About the Project -->
     <section>
       <h2>About the Project</h2>
+      <p>
+        <strong>Before browsing this site, please take a look at the repository, as it is more actively maintained and up-to-date: <a href="https://github.com/Milisav415/PET_crowd_counting" target="_blank">Link</a></strong>
+      </p>
       <p>
         This repository implements the <strong>Point-Query Quadtree</strong> approach – also known as the PET (Point Query Transformer) model – for crowd counting and localization.
         It redefines traditional crowd counting by treating it as a decomposable point querying process, where a set of queries are adaptively refined to effectively count and localize individuals.
@@ -127,8 +130,8 @@
       <p>Below are some example images illustrating key components of the approach:</p>
       <div class="image-gallery">
         <div>
-          <img src="PET/teaser.JPG" alt="Project Teaser" />
-          <p><em>Comparison between prior arts and our point-query counting paradigm. In contrast to (a) prior arts, we
+          <img src="assets/img.png" alt="Project Teaser" />
+          <p><em>Img 0. Comparison between prior arts and this point-query counting paradigm. In contrast to (a) prior arts, we
                   consider arbitrary points as input, and reason whether each point is a person and where the person locates. We devise (b)
                   a point-query quadtree to deal with dense crowd with adaptive tree splitting. The query design renders PET an intuitive
                   and universal approach, enabling (c) various applications, such as fully-supervised crowd counting and localization, partial
@@ -136,15 +139,18 @@
           </em></p>
         </div>
         <div>
-          <img src="path/to/split_map_example.jpg" alt="Quadtree Split Map Example" />
-          <p><em>Quadtree Split Map Example</em></p>
+          <img src="visualization/DJI_0243_pred8178.jpg" alt="Example Visualization Output" />
+          <p><em>Img 1. Protest in Novi Sad with density segmentation and predictions</em></p>
         </div>
         <div>
-          <img src="path/to/attention_map_example.jpg" alt="Encoder/Decoder Attention Map Example" />
-          <p><em>Attention Map Example</em></p>
+          <img src="visualization/DJI_0056_pred3263.jpg" alt="Example Visualization Output" />
+          <p><em>Img 2. Example of the output image and predictions</em></p>
+        </div>
+        <div>
+          <img src="visualization/DJI_0179_pred806.jpg" alt="Example Visualization Output" />
+          <p><em>Img 3. Close up shot example</em></p>
         </div>
       </div>
-      <p>Note: Replace the placeholder image paths with actual image files from your repository if available.</p>
     </section>
 
     <!-- Installation & Usage -->
@@ -167,7 +173,7 @@ pip install -r requirements.txt
     <section>
       <h2>Additional Resources</h2>
       <p>
-        Visit the GitHub repository: <a href="https://github.com/Milisav415/PET_crowd_counting" target="_blank">Milisav415/PET_crowd_counting</a>
+        Visit the GitHub repository: <a href="https://github.com/Milisav415/PET_crowd_counting" target="_blank">Link</a>
       </p>
     </section>
   </main>
