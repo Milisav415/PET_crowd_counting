@@ -7,7 +7,7 @@
 
   <!-- Open Graph Meta Tags for Social Sharing -->
   <meta property="og:title" content="Point-Query Quadtree for Crowd Counting, Localization, and More (ICCV 2023)" />
-  <meta property="og:description" content="Implementation of the Point-Query Quadtree (PET) model for crowd counting, localization, and more as presented at ICCV 2023." />
+  <meta property="og:description" content="Implementation of the PET (Point Query Transformer) model for crowd counting and localization using a decomposable point querying process." />
   <meta property="og:image" content="https://raw.githubusercontent.com/Milisav415/PET_crowd_counting/main/PET/teaser.JPG" />
   <meta property="og:url" content="https://yourusername.github.io/PET_crowd_counting" />
   <meta property="og:type" content="website" />
@@ -15,7 +15,7 @@
   <!-- Twitter Meta Tags -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Point-Query Quadtree for Crowd Counting, Localization, and More (ICCV 2023)" />
-  <meta name="twitter:description" content="Implementation of the Point-Query Quadtree (PET) model for crowd counting and localization." />
+  <meta name="twitter:description" content="Implementation of the PET model for crowd counting using decomposable point querying and adaptive quadtree splitting." />
   <meta name="twitter:image" content="https://raw.githubusercontent.com/Milisav415/PET_crowd_counting/main/PET/teaser.JPG" />
 
   <!-- Custom CSS for basic styling -->
@@ -55,6 +55,22 @@
       padding: 1rem;
       overflow-x: auto;
     }
+    .image-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .image-gallery div {
+      flex: 1 1 300px;
+      text-align: center;
+    }
+    .image-gallery img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
@@ -63,33 +79,77 @@
     <p>ICCV 2023 Implementation</p>
   </header>
   <main>
+    <!-- About the Project -->
     <section>
       <h2>About the Project</h2>
       <p>
-        This repository implements the <strong>Point-Query Quadtree</strong> model, also known as PET (Point Query Transformer). It offers an intuitive, flexible approach for crowd counting and localization by adaptively querying points in images.
+        This repository implements the <strong>Point-Query Quadtree</strong> approach – also known as the PET (Point Query Transformer) model – for crowd counting and localization.
+        It redefines traditional crowd counting by treating it as a decomposable point querying process, where a set of queries are adaptively refined to effectively count and localize individuals.
       </p>
       <p>
         For more details, view the <a href="https://arxiv.org/abs/2308.13814" target="_blank">paper on arXiv</a> or download the full ICCV 2023 paper below.
       </p>
       <p>
-        <a href="https://openaccess.thecvf.com/content/ICCV2023/papers/Liu_Point-Query_Quadtree_for_Crowd_Counting_Localization_and_More_ICCV_2023_paper.pdf" target="_blank">Download the ICCV 2023 Paper (PDF)</a>
+        <a href="https://openaccess.thecvf.com/content/ICCV2023/papers/Liu_Point-Query_Quadtree_for_Crowd_Counting_Localization_and_More_ICCV_2023_paper.pdf" target="_blank">The ICCV 2023 Paper (PDF)</a>
       </p>
+    </section>
+
+    <!-- Detailed Explanation -->
+    <section>
+      <h2>Detailed Explanation</h2>
       <p>
-        Visit the GitHub repository: <a href="https://github.com/Milisav415/PET_crowd_counting" target="_blank">Milisav415/PET_crowd_counting</a>
+        Traditional crowd counting often relies on density maps; however, PET introduces a novel idea by framing the task as a point querying process.
+        Here’s how it works:
+      </p>
+      <ul>
+        <li>
+          <strong>Decomposable Point Queries:</strong> Instead of predicting a global density map, the model uses a set of point queries to represent individual people.
+          These queries are designed to be interpretable and steerable.
+        </li>
+        <li>
+          <strong>Adaptive Quadtree Splitting:</strong> In dense areas, a single query can split into four new queries using a quadtree structure.
+          This adaptive refinement allows for more precise localization in congested regions while maintaining computational efficiency.
+        </li>
+        <li>
+          <strong>Progressive Rectangle Window Attention:</strong> To capture context at different scales, the model employs a transformer that uses a progressive attention mechanism.
+          It first examines a larger rectangular region and then progressively focuses on smaller subregions, which is particularly effective in handling varying crowd densities.
+        </li>
+      </ul>
+      <p>
+        These techniques together enable the model to achieve state-of-the-art performance not only in crowd counting but also in localization and other related tasks,
+        such as partial annotation learning and point annotation refinement.
       </p>
     </section>
 
+    <!-- Example Images -->
     <section>
-      <h2>Highlights</h2>
-      <ul>
-        <li>Decomposable point querying for flexible crowd modeling.</li>
-        <li>Adaptability to both sparse and dense crowd scenes.</li>
-        <li>State-of-the-art performance on crowd counting and localization tasks.</li>
-      </ul>
+      <h2>Example Images</h2>
+      <p>Below are some example images illustrating key components of the approach:</p>
+      <div class="image-gallery">
+        <div>
+          <img src="PET/teaser.JPG" alt="Project Teaser" />
+          <p><em>Comparison between prior arts and our point-query counting paradigm. In contrast to (a) prior arts, we
+                  consider arbitrary points as input, and reason whether each point is a person and where the person locates. We devise (b)
+                  a point-query quadtree to deal with dense crowd with adaptive tree splitting. The query design renders PET an intuitive
+                  and universal approach, enabling (c) various applications, such as fully-supervised crowd counting and localization, partial
+                  annotation learning, and point annotation refinement
+          </em></p>
+        </div>
+        <div>
+          <img src="path/to/split_map_example.jpg" alt="Quadtree Split Map Example" />
+          <p><em>Quadtree Split Map Example</em></p>
+        </div>
+        <div>
+          <img src="path/to/attention_map_example.jpg" alt="Encoder/Decoder Attention Map Example" />
+          <p><em>Attention Map Example</em></p>
+        </div>
+      </div>
+      <p>Note: Replace the placeholder image paths with actual image files from your repository if available.</p>
     </section>
 
+    <!-- Installation & Usage -->
     <section>
-      <h2>Installation & Usage</h2>
+      <h2>Installation &amp; Usage</h2>
       <p>
         To get started, clone the repository and install the required packages:
       </p>
@@ -103,6 +163,7 @@ pip install -r requirements.txt
       </p>
     </section>
 
+    <!-- Additional Resources -->
     <section>
       <h2>Additional Resources</h2>
       <p>
